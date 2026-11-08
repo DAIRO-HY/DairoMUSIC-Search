@@ -1,0 +1,45 @@
+pipeline {
+    agent any
+
+    environment {
+        REPO = "DAIRO-HY/DairoMusicSearch"
+        BRANCH = "release"
+    }
+    stages {
+        stage("拉取代码") {
+            steps {
+                script{
+                    if(!fileExists("DairoMusicSearch")){
+
+                        //克隆地址里有票据,用单引号由shell读取环境变量,不要输出到日志
+                        sh 'git clone --branch "$BRANCH" "https://${GITHUB_TOKEN}@github.com/${REPO}.git"'
+                    }
+                }
+                dir("DairoMusicSearch"){
+                    sh "git pull"
+                }
+            }
+        }
+        stage("构建编译环境镜像") {
+            steps {
+                //编译环境镜像只包含git、docker等工具
+                dir("DairoMusicSearch/document/docker-build"){
+                    sh "docker build -t dairo-music-search-build ."
+                    sh "yes|docker image prune"
+                }
+            }
+        }
+        stage("编译、发布") {
+            steps {
+                //源码和cargo依赖缓存放在Docker命名卷里,下次只编译有变化的部分
+                sh '''
+                    docker run --rm \
+                      -e GITHUB_TOKEN -e DOCKER_USER -e DOCKER_PASSWORD -e BRANCH \
+                      -v /var/run/docker.sock:/var/run/docker.sock \
+                      -v dairo-music-search-src:/home/DairoMusicSearch \
+                      dairo-music-search-build
+                '''
+            }
+        }
+    }
+}

@@ -1,0 +1,26 @@
+version: '3.1'
+services:
+  dairo-music-search:
+    image: dairopapa/dairo-music-search:1.0.3
+    #    build: .
+    restart: always
+    container_name: dairo-music-search
+    network_mode: host
+
+    environment:
+      #时区,解决时间不一致的bug
+      TZ: Asia/Shanghai
+
+      #解决控制台输出中文乱码
+      LANG: C.UTF-8
+
+      #缓存目录(采集到的mp3)
+      DAIRO_MUSIC_SEARCH_CACHE_FOLDER: "./temp"
+      #数据目录(YouTube cookie)
+      DAIRO_MUSIC_SEARCH_DATA_DIR: "./data"
+      #允许同时采集的数量
+      DAIRO_MUSIC_SEARCH_MAX_DOWNLOAD_THREAD_COUNT: 1
+      #WEB端口
+      DAIRO_MUSIC_SEARCH_WEB_PORT: 8021
+    volumes:
+      - ./data:/app/data

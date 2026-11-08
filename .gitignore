@@ -1,0 +1,7 @@
+/target
+/temp/
+/data/
+/.idea/
+.DS_Store
+/DairoMusicSearch.iml
+/build/
