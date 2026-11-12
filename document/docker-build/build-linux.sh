@@ -3,10 +3,10 @@
 #在编译环境容器(document/docker-build/Dockerfile)里执行:拉取代码 -> 编译 -> 发布到GitHub -> 推送Docker镜像
 #运行时需要:
 #  -v /var/run/docker.sock:/var/run/docker.sock        使用宿主机的docker
-#  -v dairo-music-search-src:/home/DairoMusicSearch    源码所在的命名卷
+#  -v dairo-music-search-src:/home/DairoMUSIC-Search    源码所在的命名卷
 #  -e GITHUB_TOKEN -e DOCKER_USER -e DOCKER_PASSWORD
 #可选:
-#  -e BRANCH=release     拉取的分支
+#  -e BRANCH=main        拉取的分支
 #  -e PUBLISH=false      只编译,不创建标签、不上传GitHub、不推送Docker镜像
 
 #遇到错误立即停止
@@ -16,10 +16,10 @@ set -e
 github_token=$GITHUB_TOKEN
 
 #项目名
-projectName="DairoMusicSearch"
+projectName="DairoMUSIC-Search"
 
 repo="DAIRO-HY/$projectName"
-export BRANCH=${BRANCH:-release}
+export BRANCH=${BRANCH:-main}
 
 #源码和cargo依赖缓存都放在Docker命名卷里
 #编译时会通过宿主机的docker再启动rust容器,挂载目录必须是宿主机能识别的路径,命名卷在两个容器里都能直接使用,不需要知道宿主机上的路径

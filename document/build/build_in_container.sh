@@ -22,6 +22,9 @@ export CARGO_TARGET_ARMV7_UNKNOWN_LINUX_MUSLEABIHF_LINKER=arm-linux-gnueabihf-gc
 
 mkdir -p ./build
 
+#编译后的程序名(和Cargo.toml里的包名一致)
+bin_name="DairoMUSIC-Search"
+
 # 编译并复制到build目录
 # $1:编译目标 $2:编译后的文件名 $3:发布的文件名
 build(){
@@ -29,7 +32,8 @@ build(){
   cp ${CARGO_TARGET_DIR:-./target}/$1/release/$2 ./build/$3
 }
 
-build x86_64-unknown-linux-musl dairo-music-search dairo-music-search-linux-amd64
-build aarch64-unknown-linux-musl dairo-music-search dairo-music-search-linux-arm64
-build armv7-unknown-linux-musleabihf dairo-music-search dairo-music-search-linux-arm
-build x86_64-pc-windows-gnu dairo-music-search.exe dairo-music-search-win-amd64.exe
+#发布的文件名保持 dairo-music-search-<平台> 不变(DairoMUSIC 内置安装时按这个文件名下载)
+build x86_64-unknown-linux-musl $bin_name dairo-music-search-linux-amd64
+build aarch64-unknown-linux-musl $bin_name dairo-music-search-linux-arm64
+build armv7-unknown-linux-musleabihf $bin_name dairo-music-search-linux-arm
+build x86_64-pc-windows-gnu $bin_name.exe dairo-music-search-win-amd64.exe

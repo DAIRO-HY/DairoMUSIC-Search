@@ -3,6 +3,24 @@
 version = 4
 
 [[package]]
+name = "DairoMUSIC-Search"
+version = "2.0.0"
+dependencies = [
+ "clap",
+ "http-body-util",
+ "hyper",
+ "hyperoute-codegen",
+ "hyperoute-core",
+ "hyperoute-macro",
+ "libc",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "url",
+]
+
+[[package]]
 name = "adler2"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -219,24 +237,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ce6e4c961d6cd6c9a86db418387425e8bdeaf05b3c8bc1411e6dca4c252f1453"
 dependencies = [
  "hybrid-array",
-]
-
-[[package]]
-name = "dairo-music-search"
-version = "2.0.0"
-dependencies = [
- "clap",
- "http-body-util",
- "hyper",
- "hyperoute-codegen",
- "hyperoute-core",
- "hyperoute-macro",
- "libc",
- "reqwest",
- "serde",
- "serde_json",
- "tokio",
- "url",
 ]
 
 [[package]]

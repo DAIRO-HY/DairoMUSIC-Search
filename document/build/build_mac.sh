@@ -11,13 +11,16 @@ cd "$(dirname "$0")/../.."
 #先创建文件夹
 mkdir -p ./build
 
+#编译后的程序名(和Cargo.toml里的包名一致)
+bin_name="DairoMUSIC-Search"
+
 #安装两个平台的编译目标
 rustup target add x86_64-apple-darwin aarch64-apple-darwin
 
 #编译到macOS intel平台
 cargo build --release --locked --target x86_64-apple-darwin
-cp ./target/x86_64-apple-darwin/release/dairo-music-search ./build/dairo-music-search-mac-amd64
+cp ./target/x86_64-apple-darwin/release/$bin_name ./build/dairo-music-search-mac-amd64
 
 #编译到macOS M平台
 cargo build --release --locked --target aarch64-apple-darwin
-cp ./target/aarch64-apple-darwin/release/dairo-music-search ./build/dairo-music-search-mac-arm64
+cp ./target/aarch64-apple-darwin/release/$bin_name ./build/dairo-music-search-mac-arm64

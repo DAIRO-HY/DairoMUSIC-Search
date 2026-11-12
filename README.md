@@ -19,7 +19,7 @@ cargo run
 cargo build --release
 
 #运行
-./target/release/dairo-music-search
+./target/release/DairoMUSIC-Search
 ```
 
 # 3. 启动参数

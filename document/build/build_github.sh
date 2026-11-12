@@ -14,8 +14,8 @@ cd "$(dirname "$0")/../.."
 #github登录票据(不要输出到日志)
 github_token=$GITHUB_TOKEN
 
-repo="DAIRO-HY/DairoMusicSearch"
-branch=${BRANCH:-release}
+repo="DAIRO-HY/DairoMUSIC-Search"
+branch=${BRANCH:-main}
 
 # 获取版本号
 version=$(sed -n 's/^version = "\(.*\)"/\1/p' ./Cargo.toml)
@@ -44,8 +44,15 @@ if [ "$ONLY_UPLOAD" != "true" ]; then
 fi
 
 #---------------------------------------获取或创建Release----------------------------------
-release_id=$(github_api https://api.github.com/repos/${repo}/releases/tags/${version} | jq -r '.id // empty')
-if [ -z "$release_id" ]; then
+#重新创建标签后,GitHub会把原来的Release变成草稿(按标签查询不到草稿),所以从列表里按标签名查找,找到后改回正式发布
+release_id=$(github_api "https://api.github.com/repos/${repo}/releases?per_page=100" \
+  | jq -r ".[] | select(.tag_name==\"${version}\") | .id" | head -n 1)
+if [ -n "$release_id" ]; then
+  echo "正在更新Release $version ..."
+  response=$(github_api -X PATCH https://api.github.com/repos/${repo}/releases/${release_id} \
+    -d "{\"tag_name\":\"${version}\",\"target_commitish\":\"${branch}\",\"name\":\"${version}\",\"draft\":false,\"prerelease\":false}")
+  echo "更新Release结果:${response}" >> $log_file
+else
   echo "正在创建Release $version ..."
   response=$(github_api -X POST https://api.github.com/repos/${repo}/releases \
     -d "{\"tag_name\":\"${version}\",\"target_commitish\":\"${branch}\",\"name\":\"${version}\",\"body\":\"本次发布版本:${version}\"}")
