@@ -32,3 +32,7 @@ url = "2"
 [profile.release]
 strip = true
 lto = true
+
+# 程序退出时结束 yt-dlp 的整个进程组
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"

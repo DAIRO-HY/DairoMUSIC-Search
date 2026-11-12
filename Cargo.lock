@@ -231,6 +231,7 @@ dependencies = [
  "hyperoute-codegen",
  "hyperoute-core",
  "hyperoute-macro",
+ "libc",
  "reqwest",
  "serde",
  "serde_json",

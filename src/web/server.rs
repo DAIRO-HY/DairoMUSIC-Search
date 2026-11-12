@@ -12,13 +12,12 @@ pub fn ready() {
 }
 
 async fn start() {
-    let listener = TcpListener::bind(format!("0.0.0.0:{}", application::ARGS.web_port))
-        .await
-        .unwrap_or_else(|e| {
-            eprintln!("-->Web服务监听端口:{}失败: {}", application::ARGS.web_port, e);
-            std::process::exit(1);
-        });
-    println!("-->Web服务已启动,端口:{}", application::ARGS.web_port);
+    let args = &*application::ARGS;
+    let listener = TcpListener::bind((args.host.as_str(), args.web_port)).await.unwrap_or_else(|e| {
+        eprintln!("-->Web服务监听{}:{}失败: {}", args.host, args.web_port, e);
+        std::process::exit(1);
+    });
+    println!("-->Web服务已启动,地址:{}:{}", args.host, args.web_port);
     loop {
         select! {
             _ = application::SHUTDOWN_NOTIFY.notified() => break,

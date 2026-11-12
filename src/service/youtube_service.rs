@@ -3,6 +3,7 @@
 use crate::application::ARGS;
 use crate::service::cache_service;
 use crate::util::number_util;
+use crate::util::process_util::{self, ChildGuard};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
@@ -36,6 +37,28 @@ pub fn music_dir() -> PathBuf {
 /// 采集完成的mp3文件
 pub fn music_file(video_id: &str) -> PathBuf {
     music_dir().join(format!("{}.mp3", video_id))
+}
+
+/// 采集中的临时文件名前缀
+/// yt-dlp 先下载到 <videoId>.tmp.webm(或.m4a等),再转码成 <videoId>.tmp.mp3,完成后才重命名成 <videoId>.mp3,
+/// 这样采集中途被强制结束时,不会把不完整的mp3当成采集完成
+fn tmp_prefix(video_id: &str) -> String {
+    format!("{}.tmp.", video_id)
+}
+
+/// 删除上次没有采集完成留下的临时文件(启动时调用)
+pub fn clean_tmp_files() {
+    let Ok(entries) = std::fs::read_dir(music_dir()) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        if entry.file_name().to_string_lossy().contains(".tmp.") {
+            match std::fs::remove_file(entry.path()) {
+                Ok(()) => println!("-->删除没有采集完成的文件:{}", entry.path().display()),
+                Err(e) => eprintln!("-->删除没有采集完成的文件:{}失败: {}", entry.path().display(), e),
+            }
+        }
+    }
 }
 
 /// 视频ID只允许字母、数字、- 和 _,防止拼接路径时访问到其他目录
@@ -87,34 +110,41 @@ pub fn collect_info(video_id: &str) -> String {
         None => "0S".to_string(),
     };
 
-    //获取采集相关的文件
+    //采集完成后才会有mp3文件
+    if start_time.is_none() && music_file(video_id).is_file() {
+        return "OK".to_string();
+    }
+
+    //获取采集中的临时文件
     let mut download_file: Option<PathBuf> = None;
     let mut mp3_file: Option<PathBuf> = None;
-    if let Ok(entries) = std::fs::read_dir(music_dir()) {
-        for entry in entries.flatten() {
-            let name = entry.file_name();
-            let name = name.to_string_lossy();
-            if !name.starts_with(video_id) {
-                continue;
-            }
-            if name.ends_with(".part") || name.ends_with(".webm") {
-                //正在下载中的文件
-                download_file = Some(entry.path());
-            } else if name.ends_with(".mp3") {
-                //mp3文件(正在转码或已经完成)
-                mp3_file = Some(entry.path());
+    if start_time.is_some() {
+        let prefix = tmp_prefix(video_id);
+        if let Ok(entries) = std::fs::read_dir(music_dir()) {
+            for entry in entries.flatten() {
+                let name = entry.file_name();
+                let name = name.to_string_lossy();
+                if !name.starts_with(&prefix) {
+                    continue;
+                }
+                if name.ends_with(".mp3") {
+                    //正在转码的mp3
+                    mp3_file = Some(entry.path());
+                } else {
+                    //正在下载的音频
+                    download_file = Some(entry.path());
+                }
             }
         }
     }
     if let Some(mp3_file) = mp3_file {
-        if start_time.is_none() {
-            //已经不在采集中,说明转码已经完成
-            return "OK".to_string();
-        }
         return format!("正在转码:{}({})", number_util::to_data_size(file_size(&mp3_file)), timer);
     }
     if let Some(download_file) = download_file {
         return format!("正在采集:{}({})", number_util::to_data_size(file_size(&download_file)), timer);
+    }
+    if start_time.is_some() {
+        return format!("准备采集:{}", timer);
     }
 
     //刚刚采集失败时,等一段时间再重新采集
@@ -170,13 +200,18 @@ fn request_collect(video_id: &str) {
 /// 所以这里直接输出到文件
 async fn collect_music(video_id: &str) {
     let mp3_file = music_file(video_id);
+    let tmp_file = music_dir().join(format!("{}mp3", tmp_prefix(video_id)));
     let mut cmd = yt_dlp_command();
     cmd.args(["--no-check-certificate", "--no-mtime", "-x", "--audio-format", "mp3", "--audio-quality", "0", "-o"])
-        .arg(&mp3_file)
+        .arg(music_dir().join(format!("{}%(ext)s", tmp_prefix(video_id))))
         .arg(video_url(video_id));
     println!("-->开始采集:{}", video_id);
-    match run(cmd, COLLECT_TIMEOUT).await {
-        Ok(_) => {
+    let result = run(cmd, COLLECT_TIMEOUT).await.and_then(|_| {
+        //转码完成后才重命名成正式的文件名
+        std::fs::rename(&tmp_file, &mp3_file).map_err(|e| format!("重命名{}失败: {}", tmp_file.display(), e))
+    });
+    match result {
+        Ok(()) => {
             cache_service::touch(&mp3_file);
             println!("-->采集完成:{}", video_id)
         }
@@ -248,17 +283,22 @@ pub(crate) fn yt_dlp_command() -> Command {
     if cookie_file.is_file() {
         cmd.arg("--cookies").arg(cookie_file);
     }
-    cmd.stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::piped())
-        .kill_on_drop(true);
+    cmd.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::piped());
+    process_util::prepare(&mut cmd);
     cmd
 }
 
 /// 执行指令,成功时返回标准输出(没有设置stdout为piped时为空),失败时返回错误输出
 pub(crate) async fn run(mut cmd: Command, timeout: Duration) -> Result<String, String> {
     let child = cmd.spawn().map_err(|e| format!("执行{}失败: {}", ARGS.yt_dlp, e))?;
-    match tokio::time::timeout(timeout, child.wait_with_output()).await {
+
+    //超时、请求被取消、程序退出时,guard 结束 yt-dlp 和它启动的 ffmpeg
+    let guard = ChildGuard::new(&child);
+    let result = tokio::time::timeout(timeout, child.wait_with_output()).await;
+    if result.is_ok() {
+        guard.finish();
+    }
+    match result {
         Err(_) => Err(format!("超过{}秒没有完成", timeout.as_secs())),
         Ok(Err(e)) => Err(e.to_string()),
         Ok(Ok(output)) if output.status.success() => Ok(String::from_utf8_lossy(&output.stdout).into_owned()),

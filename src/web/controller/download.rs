@@ -48,7 +48,7 @@ pub async fn collect_info(video_id: String) -> Result<String, BizError> {
 }
 
 /// 下载采集好的mp3,支持Range
-/// 正在转码时也可以下载(边转码边播放),文件不存在时返回404
+/// 转码完成后才有文件(采集中的临时文件不对外提供),文件不存在时返回404
 /// - video_id 视频ID
 #[GET("/d/music")]
 pub async fn music(video_id: String, headers: &HeaderMap) -> Result<Stream, BizError> {

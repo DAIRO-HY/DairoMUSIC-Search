@@ -28,6 +28,7 @@ cargo build --release
 
 | 参数 | 环境变量 | 默认值 | 说明 |
 |---|---|---|---|
+| `--host` | `DAIRO_MUSIC_SEARCH_HOST` | 0.0.0.0 | 监听地址，只允许本机访问时用 127.0.0.1 |
 | `--web-port` | `DAIRO_MUSIC_SEARCH_WEB_PORT` | 8021 | WEB 端口 |
 | `--cache-folder` | `DAIRO_MUSIC_SEARCH_CACHE_FOLDER` | ./temp | 缓存目录，mp3 保存在 `<缓存目录>/music` |
 | `--data-dir` | `DAIRO_MUSIC_SEARCH_DATA_DIR` | ./data | 数据目录，YouTube cookie 保存在 `<数据目录>/youtube-cookie.txt` |
@@ -47,7 +48,12 @@ cookie 文件是敏感信息，不要提交到代码仓库（`data/`、`temp/` �
 
 启动时和之后每天清理一次，删除 24 小时没有被访问过（`/d/music`、`/d/video` 请求或者被采集）的 mp3、视频、字幕临时目录，正在采集的跳过。
 
-# 6. 接口
+# 6. 退出
+
+收到 Ctrl+C（SIGINT）或 SIGTERM 时正常退出，并结束正在运行的 yt-dlp、ffmpeg（Linux/macOS 下按进程组结束，不留孤儿进程）。
+mp3 先转码到 `<视频ID>.tmp.mp3`，完成后才重命名成 `<视频ID>.mp3`；被强制结束时留下的临时文件在下次启动时删除。
+
+# 7. 接口
 
 | 接口 | 说明 |
 |---|---|

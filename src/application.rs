@@ -15,6 +15,10 @@ pub static ARGS: LazyLock<Argument> = LazyLock::new(Argument::parse);
 #[derive(Parser, Debug)]
 #[command(name = "DairoMUSIC-Search", version, about = "DairoMUSIC 歌曲搜索、采集服务")]
 pub struct Argument {
+    /// 监听地址(只允许本机访问时用 127.0.0.1)
+    #[arg(long, env = "DAIRO_MUSIC_SEARCH_HOST", default_value = "0.0.0.0")]
+    pub host: String,
+
     /// WEB端口
     #[arg(long, env = "DAIRO_MUSIC_SEARCH_WEB_PORT", default_value = "8021")]
     pub web_port: u16,
