@@ -29,10 +29,18 @@ RUN unzip -o /tmp/deno.zip -d /usr/local/bin && chmod a+rx /usr/local/bin/deno &
 #####################################################################安装DENO#######################################END
 
 #####################################################################安装FFMPEG#####################################START
-#ADD https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz ffmpeg-release-amd64-static.tar.xz
-ADD ffmpeg-7.0.2-amd64-static.tar.xz .
-RUN ln -s /usr/local/ffmpeg-7.0.2-amd64-static/ffmpeg /usr/local/bin/ffmpeg
-RUN ln -s /usr/local/ffmpeg-7.0.2-amd64-static/ffprobe /usr/local/bin/ffprobe
+#静态编译版(https://johnvansickle.com/ffmpeg/),release链接始终指向最新的正式版本(目前是7.0.2)
+#升级到7.x以外的版本时构建会失败,需要确认兼容后再调整版本检查;也可以用 --build-arg FFMPEG_URL=... 指定其他下载地址
+ARG FFMPEG_URL=https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
+RUN apt-get install -y xz-utils
+ADD ${FFMPEG_URL} /tmp/ffmpeg.tar.xz
+RUN mkdir -p /usr/local/ffmpeg \
+    && tar -xJf /tmp/ffmpeg.tar.xz -C /usr/local/ffmpeg --strip-components=1 \
+    && rm /tmp/ffmpeg.tar.xz \
+    && ln -s /usr/local/ffmpeg/ffmpeg /usr/local/bin/ffmpeg \
+    && ln -s /usr/local/ffmpeg/ffprobe /usr/local/bin/ffprobe \
+    && ffmpeg -version | head -1 \
+    && ffmpeg -version | head -1 | grep -q "^ffmpeg version 7\."
 #####################################################################安装FFMPEG#####################################END
 
 
