@@ -1,6 +1,7 @@
 #!/bin/bash
 
 #在macOS上编译macOS版程序(intel、M芯片),输出到build目录
+#Linux上没有macOS SDK、交叉编译不了macOS版时使用(build_all.mac.sh)
 
 #遇到错误立即停止
 set -e

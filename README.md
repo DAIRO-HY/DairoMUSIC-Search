@@ -22,6 +22,11 @@ cargo build --release
 ./target/release/DairoMUSIC-Search
 ```
 
+发布版（GitHub Release、Docker 镜像）由 `document/build/build_all.sh` 编译，和 DairoMUSIC 的方式相同：
+
+- Linux amd64/arm64：在官方 `rust:1.99.1` 镜像（Debian 13）里编译，glibc 动态链接，**需要 glibc 2.39 以上**（Debian 13、Ubuntu 24.04 及更新的系统）。旧版本的 Linux 请用 Docker 运行（`document/docker/docker-compose.yml`）
+- Windows amd64/arm64、macOS amd64/arm64：用 cargo-zigbuild 交叉编译，macOS 版需要 macOS SDK（在 Mac 上执行 `document/build/pack_macos_sdk.sh` 打包）
+
 # 3. 启动参数
 
 所有参数也可以用环境变量设置（`--help` 查看）。

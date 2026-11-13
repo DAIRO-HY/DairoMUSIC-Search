@@ -7,6 +7,8 @@
 #  -e GITHUB_TOKEN -e DOCKER_USER -e DOCKER_PASSWORD
 #可选:
 #  -e BRANCH=main        拉取的分支
+#  -v /path/MacOSX.sdk:/root/develop_tool/MacOSX.sdk -e HOST_MACOS_SDK=/path/MacOSX.sdk
+#                        macOS SDK(宿主机上的目录),没有时跳过macOS版本
 #  -e PUBLISH=false      只编译,不创建标签、不上传GitHub、不推送Docker镜像
 
 #遇到错误立即停止
@@ -50,6 +52,7 @@ export HOST_CARGO_REGISTRY=$cargo_volume
 chmod +x document/build/*.sh
 if [ "$PUBLISH" = "false" ]; then
     ./document/build/build_linux.sh
+    ./document/build/build_cross.sh
 else
     ./document/build/build_all.sh
 fi

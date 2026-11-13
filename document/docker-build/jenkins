@@ -1,7 +1,6 @@
-//Jenkins流水线:拉取代码 -> 编译Linux、Windows版程序 -> 创建标签、上传到GitHub Release -> 推送Docker镜像(amd64、arm64)
+//Jenkins流水线:拉取代码 -> 编译Linux、Windows、macOS版程序 -> 创建标签、上传到GitHub Release -> 推送Docker镜像(amd64、arm64)
 //需要Jenkins里配置环境变量:GITHUB_TOKEN、DOCKER_USER、DOCKER_PASSWORD
 //Jenkins容器里需要有git、curl、jq、docker(含buildx插件),docker使用宿主机的(挂载/var/run/docker.sock)
-//macOS版需要在Mac上执行 document/build/build_all.mac.sh 补传
 pipeline {
     agent any
 
@@ -14,6 +13,9 @@ pipeline {
         //Jenkins容器里的/root在宿主机上的路径
         //编译时通过宿主机的docker启动rust容器,挂载的代码目录和cargo目录必须是宿主机上的绝对路径
         HOST_ROOT_DIR = "/home/docker/jenkins+jdk17+docker/data"
+
+        //macOS SDK:交叉编译macOS版本时使用,在Mac上执行document/build/pack_macos_sdk.sh打包
+        //解压到宿主机的 $HOST_ROOT_DIR/develop_tool/MacOSX.sdk (Jenkins容器里是/root/develop_tool/MacOSX.sdk),不存在时跳过macOS版本
     }
 
     stages {
@@ -44,11 +46,12 @@ pipeline {
             steps {
                 dir("${env.PROJECT_DIR}/${env.PROJECT_NAME}"){
 
-                    //build_linux.sh通过这两个环境变量获取挂载到rust容器的宿主机路径
+                    //build_linux.sh、build_cross.sh通过这些环境变量获取挂载到编译容器的宿主机路径
                     //编译目录放在Docker命名卷dairo-music-search-target里,下次只编译有变化的部分
                     sh '''
                         export HOST_PROJECT_DIR="$HOST_ROOT_DIR/develop_tool/project/$PROJECT_NAME"
                         export HOST_CARGO_DIR="$HOST_ROOT_DIR/develop_tool/.cargo"
+                        export HOST_MACOS_SDK="$HOST_ROOT_DIR/develop_tool/MacOSX.sdk"
                         chmod +x document/build/*.sh
                         ./document/build/build_all.sh
                     '''

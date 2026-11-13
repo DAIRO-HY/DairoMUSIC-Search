@@ -89,7 +89,7 @@ upload(){
 
 upload dairo-music-search-linux-amd64
 upload dairo-music-search-linux-arm64
-upload dairo-music-search-linux-arm
 upload dairo-music-search-win-amd64.exe
+upload dairo-music-search-win-arm64.exe
 upload dairo-music-search-mac-amd64
 upload dairo-music-search-mac-arm64

@@ -3,27 +3,26 @@
 #  Dockerfile
 #  amd64/DairoMUSIC-Search    amd64版程序(build/dairo-music-search-linux-amd64)
 #  arm64/DairoMUSIC-Search    arm64版程序(build/dairo-music-search-linux-arm64)
-FROM ubuntu:22.04
+#程序在rust:1.99.1(Debian 13 trixie,glibc 2.41)里编译,运行环境也使用trixie,glibc版本一致(和DairoMUSIC相同)
+#用旧版本的系统(比如bookworm的glibc 2.36、ubuntu:22.04的2.35)会因为缺少新版本glibc的函数而无法运行
+FROM debian:trixie-slim
 MAINTAINER zhoulq<1064348912@qq.com>
 
 #构建的目标架构(amd64、arm64),由 docker buildx 自动传入
 ARG TARGETARCH
 
-RUN apt-get update
-RUN yes|apt-get upgrade
-
-#更新CA证书,解决HTTPS访问证书报错的BUG
-RUN apt-get install -y ca-certificates
-RUN update-ca-certificates
-
-#下载、解压用的工具
-RUN apt-get install -y curl unzip xz-utils
+#tini:作为1号进程转发退出信号、回收僵尸进程(yt-dlp、ffmpeg)
+#ca-certificates:访问https;tzdata:docker-compose里设置的TZ时区
+#curl、unzip、xz-utils:下载、解压yt-dlp、deno、ffmpeg
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends tini ca-certificates tzdata curl unzip xz-utils \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/local
 
 #####################################################################安装YT-DLP#####################################START
 #https://github.com/yt-dlp/yt-dlp
-#最新版yt-dlp要求Python 3.11以上,ubuntu:22.04自带的是3.10,所以用官方自带Python的独立可执行版本
+#用官方自带Python的独立可执行版本,不需要安装Python
 RUN case "$TARGETARCH" in \
       amd64) file=yt-dlp_linux ;; \
       arm64) file=yt-dlp_linux_aarch64 ;; \
@@ -79,5 +78,8 @@ RUN chmod +x DairoMUSIC-Search
 # DAIRO_MUSIC_SEARCH_HOST、DAIRO_MUSIC_SEARCH_WEB_PORT、DAIRO_MUSIC_SEARCH_CACHE_FOLDER、DAIRO_MUSIC_SEARCH_DATA_DIR、
 # DAIRO_MUSIC_SEARCH_MAX_DOWNLOAD_THREAD_COUNT
 
+#解决控制台输出中文乱码
+ENV LANG=C.UTF-8
+
 #启动脚本
-ENTRYPOINT ["/app/DairoMUSIC-Search"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/app/DairoMUSIC-Search"]
