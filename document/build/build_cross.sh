@@ -44,8 +44,9 @@ if [ -n "$proxy" ]; then
 fi
 
 #构建交叉编译环境的镜像(只有第一次和Dockerfile修改之后才会真正构建)
+#使用宿主机的网络:有的服务器上docker默认网络(bridge)里解析不了域名,构建时会报 Could not resolve host
 cross_image=dairo-music-search-cross:1.99.1
-docker build --platform linux/amd64 $proxy_args -t $cross_image $script_dir/cross_dockerfile
+docker build --network host --platform linux/amd64 $proxy_args -t $cross_image $script_dir/cross_dockerfile
 
 #编译目录放在Docker命名卷里(原因见build_linux.sh)
 target_volume=${TARGET_VOLUME:-dairo-music-search-target}
