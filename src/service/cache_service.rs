@@ -15,10 +15,28 @@ const CLEAN_INTERVAL: Duration = Duration::from_secs(24 * 60 * 60);
 
 /// 记录文件被访问
 pub fn touch(path: &Path) {
-    let result = File::open(path).and_then(|f| f.set_times(FileTimes::new().set_accessed(SystemTime::now())));
+    let result = open_for_set_times(path).and_then(|f| f.set_times(FileTimes::new().set_accessed(SystemTime::now())));
     if let Err(e) = result {
         eprintln!("-->更新访问时间失败:{} {}", path.display(), e);
     }
+}
+
+/// 打开文件,用来修改时间
+#[cfg(not(windows))]
+fn open_for_set_times(path: &Path) -> std::io::Result<File> {
+    File::open(path)
+}
+
+/// 打开文件,用来修改时间
+/// Windows 上修改时间(SetFileTime)要求句柄有 FILE_WRITE_ATTRIBUTES 权限,只读打开会返回「拒绝访问」(os error 5)。
+/// 只申请修改属性的权限,不申请读写数据的权限,不会和正在下载、读取这个文件的句柄冲突
+#[cfg(windows)]
+fn open_for_set_times(path: &Path) -> std::io::Result<File> {
+    use std::os::windows::fs::OpenOptionsExt;
+
+    /// winnt.h: FILE_WRITE_ATTRIBUTES
+    const FILE_WRITE_ATTRIBUTES: u32 = 0x0100;
+    std::fs::OpenOptions::new().access_mode(FILE_WRITE_ATTRIBUTES).open(path)
 }
 
 /// 启动定时清理(启动时先清理一次)
